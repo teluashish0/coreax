@@ -1,0 +1,34 @@
+{
+  "name": "sec0",
+  "version": "0.0.1",
+  "description": "Reserved placeholder package for the Sec0 npm namespace.",
+  "license": "Apache-2.0",
+  "author": "WormAI, Inc.",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "README.md"
+  ],
+  "keywords": [
+    "sec0",
+    "placeholder",
+    "reserved"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  }
+}
