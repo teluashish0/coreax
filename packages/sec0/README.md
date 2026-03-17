@@ -654,8 +654,8 @@ Use [`packages/approvals-bridge`](../approvals-bridge/README.md) for the referen
 
 ```bash
 cd packages/sec0
-pnpm run typecheck
-pnpm run test
+npm run typecheck
+npm run test
 ```
 
 ---
