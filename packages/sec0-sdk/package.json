@@ -5,6 +5,24 @@
   "description": "Open-source Sec0 TypeScript SDK with decorators, middleware, gateway helpers, guard, audit, and protocol utilities",
   "license": "Apache-2.0",
   "author": "WormAI, Inc.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/teluashish0/sec0-sdk.git"
+  },
+  "homepage": "https://github.com/teluashish0/sec0-sdk#readme",
+  "bugs": {
+    "url": "https://github.com/teluashish0/sec0-sdk/issues"
+  },
+  "keywords": [
+    "sec0",
+    "security",
+    "ai",
+    "agents",
+    "guardrails",
+    "mcp",
+    "audit",
+    "opentelemetry"
+  ],
   "packageManager": "npm@10.8.2",
   "engines": {
     "node": ">=20"

@@ -16,7 +16,6 @@ jobs:
       contents: read
       id-token: write
     env:
-      PUBLISH: ${{ github.event.inputs.publish == 'true' && '1' || '0' }}
       NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -32,5 +31,6 @@ jobs:
         run: npm run verify
 
       - name: Publish sec0-sdk
+        if: ${{ github.event.inputs.publish == 'true' }}
         working-directory: packages/sec0-sdk
         run: npm publish --provenance --access public

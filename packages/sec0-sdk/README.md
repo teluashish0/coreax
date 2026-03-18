@@ -215,7 +215,7 @@ Evaluator source selection is explicit:
 
 There is no silent fallback between local and control-plane evaluator sources.
 
-See [docs/contextual-evaluator.md](./docs/contextual-evaluator.md) for the full architecture and control-plane flow.
+See the [SDK documentation](https://docs.sec0.ai) for the full architecture and control-plane flow.
 
 This enables:
 - Policy enforcement on every tool call
@@ -640,7 +640,7 @@ const guard = createSec0Guard({
 });
 ```
 
-Use [`packages/approvals-bridge`](../approvals-bridge/README.md) for the reference Discord/Telegram approvals worker, or replace the transport with your own adapter. If you are integrating OpenClaw/Moltbot, pair your host hooks with `createMoltbotEscalationManager(...)` from `sec0-sdk/integrations/openclaw` instead of re-implementing create/poll/wait logic in the app.
+Use [`apps/sec0-approvals-bridge`](https://docs.sec0.ai/docs/approvals-integration) for the reference Discord/Telegram approvals worker, or replace the transport with your own adapter. If you are integrating OpenClaw/Moltbot, pair your host hooks with `createMoltbotEscalationManager(...)` from `sec0-sdk/integrations/openclaw` instead of re-implementing create/poll/wait logic in the app.
 
 ### Integration Notes
 
@@ -667,7 +667,7 @@ npm run test
 3. Create a branch from `main`
 4. Open a PR
 
-Found a bug? [Open an issue](../../issues).
+Found a bug? [Open an issue](https://github.com/teluashish0/sec0-sdk/issues).
 
 ---
 
