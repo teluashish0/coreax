@@ -1,13 +1,18 @@
-name: SDK Workspace
+name: SDK Repo
 
 on:
   pull_request:
     paths:
       - "package.json"
       - "package-lock.json"
-      - "pnpm-workspace.yaml"
+      - "README.md"
+      - "LICENSE"
+      - "NOTICE"
+      - "public/**"
+      - "src/**"
+      - "test/**"
+      - "tsconfig*.json"
       - "tools/**"
-      - "packages/**"
       - ".github/workflows/sdk-workspace.yml"
   push:
     branches:
@@ -16,9 +21,14 @@ on:
     paths:
       - "package.json"
       - "package-lock.json"
-      - "pnpm-workspace.yaml"
+      - "README.md"
+      - "LICENSE"
+      - "NOTICE"
+      - "public/**"
+      - "src/**"
+      - "test/**"
+      - "tsconfig*.json"
       - "tools/**"
-      - "packages/**"
       - ".github/workflows/sdk-workspace.yml"
 
 jobs:
@@ -32,5 +42,5 @@ jobs:
           node-version: 20
       - name: Install
         run: npm install
-      - name: Verify Workspace
+      - name: Verify Repo
         run: npm run verify

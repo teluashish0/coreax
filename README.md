@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public/sec0_logo.png" alt="Sec0 logo" width="70">
+  <img src="https://raw.githubusercontent.com/teluashish0/sec0-sdk/main/public/sec0_logo.png" alt="Sec0 logo" width="70">
 </p>
 
 <h1 align="center">sec0</h1>

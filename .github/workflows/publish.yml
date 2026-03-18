@@ -32,5 +32,4 @@ jobs:
 
       - name: Publish sec0-sdk
         if: ${{ github.event.inputs.publish == 'true' }}
-        working-directory: packages/sec0-sdk
         run: npm publish --provenance --access public
