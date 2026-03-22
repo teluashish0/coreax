@@ -5,7 +5,7 @@
 <h1 align="center">sec0</h1>
 
 <p align="center"><strong>Securing Rogue Agents</strong></p>
-<p align="center"><em>Open-source runtime safety and data curation layer for safe, continuous agent improvement</em></p>
+<p align="center"><em>Open-source runtime safety enforcement and data curation layer for safe, continuous agent improvement</em></p>
 
 <p align="center">
   <a href="https://www.npmjs.com/package/sec0-sdk"><img src="https://img.shields.io/npm/v/sec0-sdk" alt="npm version"></a>
