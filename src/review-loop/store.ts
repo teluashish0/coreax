@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
@@ -8,8 +8,6 @@ import type {
   HumanResolution,
   OutcomeRecord,
   PendingReview,
-  ReviewJsonObject,
-  ReviewJsonValue,
   Sec0Decision,
 } from "./types";
 
@@ -54,28 +52,6 @@ function readNdjson<T>(filePath: string): T[] {
     .map((line) => line.trim())
     .filter((line) => line.length > 0)
     .map((line) => JSON.parse(line) as T);
-}
-
-function stableJson(value: ReviewJsonValue | undefined): ReviewJsonValue {
-  if (Array.isArray(value)) {
-    return value.map((item) => stableJson(item));
-  }
-  if (value && typeof value === "object") {
-    return Object.fromEntries(
-      Object.entries(value)
-        .sort(([left], [right]) => left.localeCompare(right))
-        .map(([key, nestedValue]) => [key, stableJson(nestedValue)]),
-    );
-  }
-  return value ?? null;
-}
-
-function stringifyStable(value: ReviewJsonValue | undefined): string {
-  return JSON.stringify(stableJson(value));
-}
-
-function hashValue(value: ReviewJsonValue | undefined): string {
-  return createHash("sha256").update(stringifyStable(value)).digest("hex");
 }
 
 function latestByProposalId<T extends { proposal_id: string }>(rows: T[]): Map<string, T> {
@@ -187,30 +163,5 @@ export class FileReviewLoopStore {
         latest_resolution: null,
       }))
       .filter((pending) => Boolean(pending.proposal));
-  }
-
-  getReviewKey(proposal: ActionProposal): string {
-    const explicitKey = proposal.metadata?.review_key;
-    if (typeof explicitKey === "string" && explicitKey.trim()) {
-      return explicitKey;
-    }
-    return hashValue({
-      tenant: proposal.tenant,
-      domain: proposal.domain,
-      action_type: proposal.action_type,
-      action_name: proposal.action_name,
-      arguments: proposal.arguments,
-    });
-  }
-
-  getLatestResolutionForEquivalentProposal(proposal: ActionProposal): HumanResolution | null {
-    const reviewKey = this.getReviewKey(proposal);
-    const proposalsById = latestByProposalId(this.readProposals());
-    const resolutions = this.readResolutions();
-    const matches = resolutions.filter((resolution) => {
-      const candidateProposal = proposalsById.get(resolution.proposal_id);
-      return Boolean(candidateProposal) && this.getReviewKey(candidateProposal!) === reviewKey;
-    });
-    return matches.at(-1) || null;
   }
 }

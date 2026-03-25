@@ -11,19 +11,30 @@ export type {
 } from "./runtime-adapter";
 export {
   createEscalationManager,
+  createHumanReviewManager,
   Sec0EscalationError,
   Sec0EscalationCreateError,
   Sec0EscalationGetError,
   Sec0EscalationResolveError,
   Sec0EscalationWaitError,
   Sec0EscalationAbortError,
-} from "./escalation";
+  Sec0HumanReviewError,
+  Sec0HumanReviewCreateError,
+  Sec0HumanReviewGetError,
+  Sec0HumanReviewResolveError,
+  Sec0HumanReviewWaitError,
+  Sec0HumanReviewAbortError,
+} from "./review-loop";
 export type {
   EscalationManager,
   EscalationManagerConfig,
   EscalationResolution,
   EscalationWaitOptions,
-} from "./escalation";
+  HumanReviewManager,
+  HumanReviewManagerConfig,
+  HumanReviewResolution,
+  HumanReviewWaitOptions,
+} from "./review-loop";
 export { createSec0Guard, createNoopApprovalTransport, createApprovalsBridgeTransport } from "./guard";
 export type {
   Sec0Guard,

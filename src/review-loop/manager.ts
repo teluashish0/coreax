@@ -10,12 +10,12 @@ import {
   invokeHook,
   normalizeTenant,
   sanitizeCreateInput,
+  type EscalationCreatedEvent,
   type EscalationErrorEvent,
   type EscalationManager,
   type EscalationManagerConfig,
   type EscalationResolution,
   type EscalationWaitOptions,
-  type EscalationCreatedEvent,
 } from "./config";
 import {
   Sec0EscalationCreateError,

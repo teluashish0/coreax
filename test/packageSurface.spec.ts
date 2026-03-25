@@ -30,7 +30,6 @@ describe("sec0 package surface", () => {
       "./audit",
       "./otel",
       "./middleware",
-      "./escalation",
       "./guard",
       "./review-loop",
       "./instrumentation",
@@ -41,6 +40,7 @@ describe("sec0 package surface", () => {
     for (const subpath of expectedSubpaths) {
       expect(packageJson.exports).toHaveProperty(subpath);
     }
+    expect(packageJson.exports).not.toHaveProperty("./escalation");
   });
 
   it("prevents legacy standalone copies from reclaiming canonical package identities", () => {

@@ -1,6 +1,6 @@
 import { type GuardEscalationResolution } from "../../guard";
 import type { EscalationReporter, EscalationResolver } from "../../core/contracts";
-import { createEscalationManager, type EscalationManager } from "../../escalation";
+import { createEscalationManager, type EscalationManager } from "../../review-loop";
 import type { MoltbotMessageSendingResult } from "./moltbot";
 
 export type MoltbotEscalationMode = "human" | "auto-approve" | "auto-reject" | "off";

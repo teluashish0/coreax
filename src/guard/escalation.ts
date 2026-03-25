@@ -9,7 +9,7 @@ import {
   createEscalationManager,
   isEscalationTerminal as isTerminalEscalationStatus,
   type EscalationManager,
-} from "../escalation";
+} from "../review-loop";
 import { GuardAbortError, GuardEscalationError } from "./errors";
 import type {
   GuardDecision,

@@ -25,7 +25,7 @@ afterEach(() => {
 });
 
 describe("review-loop store", () => {
-  it("lists pending reviews and reuses the latest human resolution for equivalent proposals", () => {
+  it("lists pending reviews and keeps proposal-scoped resolutions", () => {
     const store = new FileReviewLoopStore({ rootDir: makeTempDir() });
     const baseProposal = normalizeActionProposal({
       run_id: "run-1",
@@ -37,7 +37,7 @@ describe("review-loop store", () => {
       action_name: "submit_change_request",
       arguments: { request_id: "req-1", proposed_owner: "team-a" },
       observation_context: { requires_dual_approval: true },
-      metadata: { review_key: "change-request-owner-update" },
+      metadata: {},
     });
 
     const firstProposal = { ...baseProposal, proposal_id: "proposal-1" };
@@ -45,12 +45,7 @@ describe("review-loop store", () => {
       ...baseProposal,
       proposal_id: "proposal-2",
       arguments: { request_id: "req-2", proposed_owner: "team-b" },
-      metadata: { review_key: "change-request-second-owner-update" },
-    };
-    const equivalentProposal = {
-      ...baseProposal,
-      proposal_id: "proposal-3",
-      arguments: { request_id: "req-1", proposed_owner: "team-a" },
+      metadata: { review_id: "review-2" },
     };
 
     for (const proposal of [firstProposal, pendingProposal]) {
@@ -75,12 +70,11 @@ describe("review-loop store", () => {
     const pending = store.listPendingReviews();
     expect(pending).toHaveLength(1);
     expect(pending[0]?.proposal.proposal_id).toBe("proposal-2");
-
-    const reusedResolution = store.getLatestResolutionForEquivalentProposal(equivalentProposal);
-    expect(reusedResolution).toMatchObject({
+    expect(store.getLatestResolution(firstProposal.proposal_id)).toMatchObject({
       decision: "edit",
       edited_arguments: { request_id: "req-1", proposed_owner: "team-security" },
     });
+    expect(store.getLatestResolution(pendingProposal.proposal_id)).toBeNull();
   });
 });
 

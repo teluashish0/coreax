@@ -74,10 +74,6 @@
       "types": "./dist/middleware/index.d.ts",
       "default": "./dist/middleware/index.js"
     },
-    "./escalation": {
-      "types": "./dist/escalation/index.d.ts",
-      "default": "./dist/escalation/index.js"
-    },
     "./guard": {
       "types": "./dist/guard/index.d.ts",
       "default": "./dist/guard/index.js"

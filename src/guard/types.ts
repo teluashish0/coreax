@@ -4,7 +4,7 @@ import type {
   EscalationResolution,
   EscalationResolutionStatusMetadata,
   EscalationWaitOptions,
-} from "../escalation";
+} from "../review-loop";
 import type {
   EscalationCreateInput,
   EscalationCreateResult,
