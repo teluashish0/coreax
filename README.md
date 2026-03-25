@@ -575,3 +575,9 @@ Found a bug? [Open an issue](https://github.com/teluashish0/sec0-sdk/issues).
 ## License
 
 Apache License 2.0 (see `LICENSE`).
+
+---
+
+## Citation
+
+If you use this repository in your work and find it helpful, please cite the repository and link back to the project where appropriate.
