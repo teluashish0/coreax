@@ -8,13 +8,6 @@ export interface ReviewJsonObject {
   [key: string]: ReviewJsonValue;
 }
 
-export type ReviewMessageRole = "system" | "user" | "assistant";
-
-export interface ReviewMessage {
-  role: ReviewMessageRole;
-  content: string;
-}
-
 export interface ReviewFinding {
   code: string;
   message: string;
@@ -111,49 +104,6 @@ export interface PendingReview {
   proposal: ActionProposal;
   decision: Sec0Decision;
   latest_resolution?: HumanResolution | null;
-}
-
-export interface ReviewLoopRecord {
-  proposal: ActionProposal;
-  decision?: Sec0Decision;
-  human_resolution?: HumanResolution | null;
-  execution_result?: ExecutionResult | null;
-  outcome_record?: OutcomeRecord | null;
-}
-
-export interface PreferenceComparison {
-  prompt_conversation: ReviewMessage[];
-  completion_A: ReviewMessage[];
-  completion_B: ReviewMessage[];
-}
-
-export interface PreferenceExample {
-  proposal_id: string;
-  resolution_id: string;
-  preference_kind: HumanResolutionDecision;
-  comparison: PreferenceComparison;
-  label: "A" | "B" | "Tie";
-  chosen_completion: ReviewJsonObject;
-  rejected_completion: ReviewJsonObject;
-  metadata?: ReviewJsonObject;
-}
-
-export interface RewardOutcomeRow extends ReviewLoopRecord {
-  proposal_id: string;
-  run_id: string;
-}
-
-export interface ReplayEventRow {
-  proposal_id: string;
-  run_id?: string | null;
-  event_type:
-    | "action_proposal"
-    | "sec0_decision"
-    | "human_resolution"
-    | "execution_result"
-    | "outcome_record";
-  created_at: string;
-  payload: ReviewJsonObject;
 }
 
 export interface ReviewLoopWaitOptions {

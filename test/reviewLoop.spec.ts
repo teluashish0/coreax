@@ -25,26 +25,35 @@ afterEach(() => {
 });
 
 describe("review-loop store", () => {
-  it("exports edited, approved, and rejected preference examples from normalized records", () => {
+  it("lists pending reviews and reuses the latest human resolution for equivalent proposals", () => {
     const store = new FileReviewLoopStore({ rootDir: makeTempDir() });
     const baseProposal = normalizeActionProposal({
       run_id: "run-1",
       trace_id: "trace-1",
       tenant: "tenant-a",
-      domain: "retail",
+      domain: "operations",
       agent_id: "agent-1",
       action_type: "tool_call",
-      action_name: "modify_pending_order_payment",
-      arguments: { order_id: "#1", payment_method_id: "pm_old" },
-      observation_context: { explicit_user_confirmation: false },
-      metadata: {},
+      action_name: "submit_change_request",
+      arguments: { request_id: "req-1", proposed_owner: "team-a" },
+      observation_context: { requires_dual_approval: true },
+      metadata: { review_key: "change-request-owner-update" },
     });
 
-    const approvedProposal = { ...baseProposal, proposal_id: "proposal-approve" };
-    const rejectedProposal = { ...baseProposal, proposal_id: "proposal-reject" };
-    const editedProposal = { ...baseProposal, proposal_id: "proposal-edit" };
+    const firstProposal = { ...baseProposal, proposal_id: "proposal-1" };
+    const pendingProposal = {
+      ...baseProposal,
+      proposal_id: "proposal-2",
+      arguments: { request_id: "req-2", proposed_owner: "team-b" },
+      metadata: { review_key: "change-request-second-owner-update" },
+    };
+    const equivalentProposal = {
+      ...baseProposal,
+      proposal_id: "proposal-3",
+      arguments: { request_id: "req-1", proposed_owner: "team-a" },
+    };
 
-    for (const proposal of [approvedProposal, rejectedProposal, editedProposal]) {
+    for (const proposal of [firstProposal, pendingProposal]) {
       store.appendProposal(proposal);
       store.appendDecision({
         proposal_id: proposal.proposal_id,
@@ -56,42 +65,21 @@ describe("review-loop store", () => {
     }
 
     store.appendResolution({
-      proposal_id: approvedProposal.proposal_id,
-      decision: "approve",
-      reviewer: "alice",
-      created_at: approvedProposal.created_at,
-    });
-    store.appendResolution({
-      proposal_id: rejectedProposal.proposal_id,
-      decision: "reject",
-      reviewer: "alice",
-      feedback: "missing consent",
-      created_at: rejectedProposal.created_at,
-    });
-    store.appendResolution({
-      proposal_id: editedProposal.proposal_id,
+      proposal_id: firstProposal.proposal_id,
       decision: "edit",
       reviewer: "alice",
-      edited_arguments: { order_id: "#1", payment_method_id: "pm_verified" },
-      created_at: editedProposal.created_at,
+      edited_arguments: { request_id: "req-1", proposed_owner: "team-security" },
+      created_at: firstProposal.created_at,
     });
 
-    const examples = store.exportPreferenceExamples();
-    expect(examples).toHaveLength(3);
-    expect(examples.map((example) => example.preference_kind).sort()).toEqual([
-      "approve",
-      "edit",
-      "reject",
-    ]);
+    const pending = store.listPendingReviews();
+    expect(pending).toHaveLength(1);
+    expect(pending[0]?.proposal.proposal_id).toBe("proposal-2");
 
-    const editedExample = examples.find((example) => example.preference_kind === "edit");
-    expect(editedExample?.chosen_completion).toMatchObject({
-      mode: "execute",
-      arguments: { payment_method_id: "pm_verified" },
-    });
-    expect(editedExample?.rejected_completion).toMatchObject({
-      mode: "execute",
-      arguments: { payment_method_id: "pm_old" },
+    const reusedResolution = store.getLatestResolutionForEquivalentProposal(equivalentProposal);
+    expect(reusedResolution).toMatchObject({
+      decision: "edit",
+      edited_arguments: { request_id: "req-1", proposed_owner: "team-security" },
     });
   });
 });
@@ -104,11 +92,11 @@ describe("executeReviewedAction", () => {
         run_id: "run-1",
         trace_id: "trace-1",
         tenant: "tenant-a",
-        domain: "retail",
+        domain: "operations",
         agent_id: "agent-1",
         action_type: "tool_call",
-        action_name: "modify_pending_order_payment",
-        arguments: { payment_method_id: "pm_old" },
+        action_name: "assign_reviewer",
+        arguments: { reviewer: "team-a" },
         observation_context: {},
         metadata: {},
       }),
@@ -121,14 +109,14 @@ describe("executeReviewedAction", () => {
       },
       human_resolution: null,
       allow_execution: false,
-      effective_arguments: { payment_method_id: "pm_old" },
+      effective_arguments: { reviewer: "team-a" },
     }));
     const waitForHumanResolution = vi.fn(async () => ({
       resolution_id: "resolution-1",
       proposal_id: "proposal-1",
       decision: "edit" as const,
       reviewer: "alice",
-      edited_arguments: { payment_method_id: "pm_verified" },
+      edited_arguments: { reviewer: "team-security" },
       created_at: new Date().toISOString(),
     }));
     const reportExecution = vi.fn(async (execution) => execution);
@@ -141,13 +129,10 @@ describe("executeReviewedAction", () => {
       resolveReview: vi.fn(),
       reportExecution,
       reportOutcome: vi.fn(),
-      exportPreferenceExamples: vi.fn(),
-      exportRewardOutcomeRows: vi.fn(),
-      exportReplayRows: vi.fn(),
     };
 
-    const execute = vi.fn(async (args: { payment_method_id: string }) => ({
-      applied_payment_method_id: args.payment_method_id,
+    const execute = vi.fn(async (args: { reviewer: string }) => ({
+      applied_reviewer: args.reviewer,
     }));
 
     const result = await executeReviewedAction({
@@ -157,11 +142,11 @@ describe("executeReviewedAction", () => {
         run_id: "run-1",
         trace_id: "trace-1",
         tenant: "tenant-a",
-        domain: "retail",
+        domain: "operations",
         agent_id: "agent-1",
         action_type: "tool_call",
-        action_name: "modify_pending_order_payment",
-        arguments: { payment_method_id: "pm_old" },
+        action_name: "assign_reviewer",
+        arguments: { reviewer: "team-a" },
         observation_context: {},
         metadata: {},
         created_at: new Date().toISOString(),
@@ -171,14 +156,14 @@ describe("executeReviewedAction", () => {
     });
 
     expect(waitForHumanResolution).toHaveBeenCalledWith("proposal-1", undefined);
-    expect(execute).toHaveBeenCalledWith({ payment_method_id: "pm_verified" });
+    expect(execute).toHaveBeenCalledWith({ reviewer: "team-security" });
     expect(reportExecution).toHaveBeenCalledWith(
       expect.objectContaining({
         proposal_id: "proposal-1",
         executed: true,
-        final_arguments: { payment_method_id: "pm_verified" },
+        final_arguments: { reviewer: "team-security" },
       }),
     );
-    expect(result.value).toEqual({ applied_payment_method_id: "pm_verified" });
+    expect(result.value).toEqual({ applied_reviewer: "team-security" });
   });
 });

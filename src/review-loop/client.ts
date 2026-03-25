@@ -6,13 +6,9 @@ import type {
   HumanResolution,
   OutcomeRecord,
   PendingReview,
-  PreferenceExample,
-  ReplayEventRow,
   ResolveReviewInput,
   ReviewJsonObject,
-  ReviewJsonValue,
   ReviewLoopWaitOptions,
-  RewardOutcomeRow,
   ReviewSubmission,
 } from "./types";
 
@@ -27,9 +23,6 @@ export interface ReviewLoopClient {
   resolveReview(input: ResolveReviewInput): Promise<HumanResolution>;
   reportExecution(result: ExecutionResult): Promise<ExecutionResult>;
   reportOutcome(result: OutcomeRecord): Promise<OutcomeRecord>;
-  exportPreferenceExamples(): Promise<PreferenceExample[]>;
-  exportRewardOutcomeRows(): Promise<RewardOutcomeRow[]>;
-  exportReplayRows(): Promise<ReplayEventRow[]>;
 }
 
 export interface HttpReviewLoopClientConfig {
@@ -190,18 +183,6 @@ export class HttpReviewLoopClient implements ReviewLoopClient {
       method: "POST",
       body: JSON.stringify(result),
     });
-  }
-
-  exportPreferenceExamples(): Promise<PreferenceExample[]> {
-    return this.request("/review-loop/export/preferences");
-  }
-
-  exportRewardOutcomeRows(): Promise<RewardOutcomeRow[]> {
-    return this.request("/review-loop/export/reward-outcomes");
-  }
-
-  exportReplayRows(): Promise<ReplayEventRow[]> {
-    return this.request("/review-loop/export/replay");
   }
 }
 
