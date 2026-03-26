@@ -4,7 +4,7 @@
 
 <h1 align="center">sec0</h1>
 
-<h3 align="center"><strong>The safest way to monitor, enforce context-aware controls, and drive your AI agents as conditions change</strong></h3>
+<h3 align="center"><strong>The safest way to monitor, enforce context-aware guardrails, and drive your AI agents as conditions change</strong></h3>
 <p align="center"><em>Sec0 is an open-source Runtime Assurance SDK for AI agents in production</em></p>
 <p align="center"><em>Built to interoperate with any stack.</em></p>
 
