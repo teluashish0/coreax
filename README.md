@@ -4,8 +4,11 @@
 
 <h1 align="center">sec0</h1>
 
-<p align="center"><strong>Securing Rogue Agents</strong></p>
-<p align="center"><em>Open-source runtime safety enforcement and data curation layer for safe, continuous agent improvement</em></p>
+<h3 align="center"><strong>The safest way to monitor, enforce controls, and drive your AI agents as conditions change</strong></h3>
+<p align="center"><em>Sec0 is an open-source Runtime Assurance SDK for AI agents in production</em></p>
+<p align="center"><em>Built to interoperate with any stack.</em></p>
+
+
 
 <p align="center">
   <a href="https://www.npmjs.com/package/sec0-sdk"><img src="https://img.shields.io/npm/v/sec0-sdk" alt="npm version"></a>
@@ -18,20 +21,22 @@
   <a href="https://sec0.ai">Website</a> •
   <a href="https://app.sec0.ai">Dashboard</a> •
   <a href="https://docs.sec0.ai">SDK Documentation</a> •
+  <a href="https://youtu.be/HrPb13ZYa0M">Demo</a> •
   <a href="#contributing">Contributing</a>
 </p>
 
 ---
 
 <p align="center">
-  <a href="https://youtu.be/HrPb13ZYa0M">
-    <img src="./public/sec0-demo-thumbnail.png" alt="Sec0 Demo: Runtime Guardrails That Adapt to Context" width="600">
-  </a>
+
+  <img width="732" height="376" alt="Image that displays context-aware self-correcting of security boundary of AI agents as they evolve" src="./public/sec0-visual.png" />
+
+  
 </p>
 
 ---
 ## What Is Sec0?
-Sec0 is an open-source SDK and runtime infrastructure for governing AI workflows with context-aware guardrails that evolve alongside your agents. It captures and curates high-quality trajectory data from orchestrator decisions, agent actions, tool calls, policy outcomes, and human-in-the-loop interventions to support safe, continuous agent improvement.
+Sec0 provides a context-aware runtime SDK for governing AI workflows with guardrails that evolve alongside your agents. It captures and curates high-quality trajectory data from orchestrator decisions, agent actions, tool calls, data access, policy outcomes, and human-in-the-loop interventions to support safe, continuous improvement of AI agents.
 
 ## Installation
 
