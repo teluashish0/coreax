@@ -537,38 +537,6 @@ const guard = createSec0Guard({
 
 That is the natural hosted path: the app only needs Sec0 control-plane auth, and Sec0 handles the runtime approval flow. No Discord or bridge URL wiring is required in application code.
 
-### 10. Optional: Mirror Pending Reviews into Your Own Approvals Worker
-
-```typescript
-import {
-  createApprovalsBridgeTransport,
-  createSec0Guard,
-} from "sec0-sdk/guard";
-
-const guard = createSec0Guard({
-  mode: "dashboard",
-  provider: {
-    remote: {
-      auth: { apiKey: process.env.SEC0_API_KEY },
-      source: { source: "control-plane", level: "middleware", scope: "base" },
-    },
-  },
-  escalation: {
-    tenant: process.env.SEC0_TENANT_ID,
-    waitForResolutionByDefault: true,
-    timeoutMs: 5 * 60_000,
-  },
-  transport: createApprovalsBridgeTransport({
-    bridgeUrl: process.env.SEC0_APPROVALS_BRIDGE_URL!,
-    tenantId: process.env.SEC0_TENANT_ID!,
-    bearerToken: process.env.SEC0_APPROVALS_BRIDGE_TOKEN,
-    sharedSecret: process.env.SEC0_APPROVALS_BRIDGE_SHARED_SECRET,
-  }),
-});
-```
-
-Only add `createApprovalsBridgeTransport(...)` when you are running a custom approvals worker such as the reference Discord/Telegram bridge. If you are integrating OpenClaw/Moltbot, pair your host hooks with `createMoltbotEscalationManager(...)` from `sec0-sdk/integrations/openclaw` instead of re-implementing create/poll/wait logic in the app.
-
 ### Integration Notes
 
 - Start with `standalone` while wiring Guard into the call sites that own the side effect.
