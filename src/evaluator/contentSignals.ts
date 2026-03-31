@@ -59,8 +59,8 @@ function combinedContentText(input: EvaluatorInput, contentExcerpt: string): str
 
 export function contentHasSensitiveRefusal(text: string): boolean {
   return detectorTextHasAny(text, [
-    /\b(?:cannot|can't|can not|unable to|not able to|won't|will not|do not|don't|am not able to)\b[^.?!]{0,100}\b(?:approval range|commercial envelope|approval cap|approval ceiling|budget envelope|budget ceiling|internal ceiling|stretch price|walk away price|willingness to pay|live supplier quotes?|other suppliers?|current suppliers?|competitive (?:quotes|offers|pricing|benchmarks?|range)|market comparisons?|benchmark range)\b/,
-    /\b(?:approval range|commercial envelope|approval cap|approval ceiling|budget envelope|budget ceiling|internal ceiling|stretch price|walk away price|willingness to pay|live supplier quotes?|other suppliers?|current suppliers?|competitive (?:quotes|offers|pricing|benchmarks?|range)|market comparisons?|benchmark range)\b[^.?!]{0,100}\b(?:cannot|can't|can not|unable to|not able to|won't|will not|do not|don't|am not able to)\b/,
+    /\b(?:cannot|can't|can not|unable to|not able to|won't|will not|do not|don't|am not able to)\b[^.?!]{0,100}\b(?:internal limits?|approval thresholds?|private pricing|confidential pricing|sensitive quotes?|private benchmarks?|restricted comparisons?)\b/,
+    /\b(?:internal limits?|approval thresholds?|private pricing|confidential pricing|sensitive quotes?|private benchmarks?|restricted comparisons?)\b[^.?!]{0,100}\b(?:cannot|can't|can not|unable to|not able to|won't|will not|do not|don't|am not able to)\b/,
   ]);
 }
 
@@ -68,9 +68,9 @@ function contentHasCommitmentDeferral(text: string): boolean {
   return detectorTextHasAny(text, [
     /\bbefore confirming any timing\b/,
     /\bbefore committing to next steps\b/,
-    /\bbefore\b[^.?!]{0,140}\b(?:purchase order|release a purchase order|contract signing|sign(?:ed|ing)?|commit(?:ment)?)\b/,
-    /\buntil\b[^.?!]{0,140}\b(?:purchase order|release a purchase order|contract signing|sign(?:ed|ing)?|commit(?:ment)?)\b/,
-    /\bnot\b[^.?!]{0,50}\b(?:confirm|commit|release|sign)\b[^.?!]{0,100}\b(?:purchase order|contract|next steps)\b/,
+    /\bbefore\b[^.?!]{0,140}\b(?:final confirmation|sign(?:ed|ing)?|commit(?:ment)?|release|execution)\b/,
+    /\buntil\b[^.?!]{0,140}\b(?:final confirmation|sign(?:ed|ing)?|commit(?:ment)?|release|execution)\b/,
+    /\bnot\b[^.?!]{0,50}\b(?:confirm|commit|release|sign)\b[^.?!]{0,100}\b(?:next steps|execution|approval)\b/,
   ]);
 }
 
@@ -93,11 +93,11 @@ function contentHasConcreteComparisonPricing(contentExcerpt: string): boolean {
   const pricePoints = extractDistinctPricePoints(text);
   const hasMultiplePricePoints = pricePoints.length > 1;
   const hasExplicitSupplierComparison = detectorTextHasAny(text, [
-    /\bother suppliers?\b/,
-    /\bcurrent suppliers?\b/,
-    /\blive supplier quotes?\b/,
-    /\bprocurement comparison\b/,
-    /\bcompeting supplier quotes?\b/,
+    /\bother providers?\b/,
+    /\bcurrent providers?\b/,
+    /\blive quotes?\b/,
+    /\bmarket comparison\b/,
+    /\bcompeting quotes?\b/,
   ]);
   const hasExplicitQuoteDetail = detectorTextHasAny(text, [
     /\bcompetitive range\b/,
@@ -125,16 +125,12 @@ export function contentHasConcreteSensitiveDisclosure(contentExcerpt: string): b
   const hasConcreteBenchmarkDisclosure = contentHasConcreteComparisonPricing(text);
   const hasApprovalLeak =
     detectorTextHasAny(text, [
-      /\bapproval range\b/,
-      /\bcommercial envelope\b/,
-      /\bapproval cap\b/,
-      /\bapproval ceiling\b/,
-      /\bbudget ceiling\b/,
-      /\bbudget envelope\b/,
-      /\binternal ceiling\b/,
-      /\bstretch price\b/,
-      /\bwalk away price\b/,
-      /\bwillingness to pay\b/,
+      /\binternal limits?\b/,
+      /\bapproval thresholds?\b/,
+      /\bprivate pricing\b/,
+      /\bconfidential pricing\b/,
+      /\bprivate benchmarks?\b/,
+      /\brestricted comparisons?\b/,
     ]) && !hasSensitiveRefusal;
   return (hasPrice && (hasConcreteBenchmarkDisclosure || hasApprovalLeak)) || (hasApprovalLeak && hasPrice);
 }
@@ -150,12 +146,11 @@ export function looksLikePrerequisiteSeekingReply(
   if (!text) return false;
   const asksForPrerequisiteDetail =
     detectorTextHasAny(text, [/\b(could you|can you|please|share|provide|send|confirm|review|include|outline|detail)\b/]) &&
-    detectorTextHasAny(text, [/\b(msa|sow|sla|warranty|quality|support|delivery|contract|review|redline)\b/]);
+    detectorTextHasAny(text, [/\b(document|details?|requirements?|access|context|support|delivery|contract|review|history)\b/]);
   if (!asksForPrerequisiteDetail) return false;
   const hasCommitmentSignal =
     detectorTextHasAny(text, [
       /\bissue (?:the )?po\b/,
-      /\bpurchase order\b/,
       /\bclose today\b/,
       /\bmove immediately\b/,
       /\bready to proceed\b/,

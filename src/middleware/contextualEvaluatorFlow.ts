@@ -170,7 +170,7 @@ export async function runContextualEvaluation(
   const contextualViolation =
     evaluation.output.decision === "deny"
       ? "contextual_evaluator_denied"
-      : evaluation.output.decision === "escalate"
+      : evaluation.output.decision === "escalate" || evaluation.output.decision === "clarify"
         ? "contextual_evaluator_escalated"
         : null;
   const adjudicated = resolveDetectorContextualViolation({

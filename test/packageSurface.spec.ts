@@ -6,8 +6,16 @@ function readJson(filePath: string): any {
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
 }
 
-function existingPaths(paths: string[]): string[] {
-  return paths.filter((filePath) => fs.existsSync(filePath));
+function siblingPackagePath(packageDir: string, packageName: string): string {
+  const candidates = [
+    path.join(packageDir, "..", packageName, "package.json"),
+    path.join(packageDir, "..", "..", packageName, "package.json"),
+  ];
+  const resolved = candidates.find((candidate) => fs.existsSync(candidate));
+  if (!resolved) {
+    throw new Error(`missing sibling package manifest for ${packageName}`);
+  }
+  return resolved;
 }
 
 describe("sec0 package surface", () => {
@@ -30,8 +38,9 @@ describe("sec0 package surface", () => {
       "./audit",
       "./otel",
       "./middleware",
+      "./escalation",
       "./guard",
-      "./review-loop",
+      "./governance",
       "./instrumentation",
       "./gateway",
       "./integrations/openclaw",
@@ -40,42 +49,20 @@ describe("sec0 package surface", () => {
     for (const subpath of expectedSubpaths) {
       expect(packageJson.exports).toHaveProperty(subpath);
     }
-    expect(packageJson.exports).not.toHaveProperty("./escalation");
   });
 
   it("prevents legacy standalone copies from reclaiming canonical package identities", () => {
-    const repoRoot = path.resolve(packageDir, "..", "..");
-    const workspaceRoot = path.resolve(repoRoot, "..");
     const legacyPackages = [
       {
-        paths: existingPaths([
-          path.join(repoRoot, "sec0-sdk", "package.json"),
-          path.join(workspaceRoot, "sec0-sdk", "package.json"),
-        ]),
-        canonicalName: "sec0",
-      },
-      {
-        paths: existingPaths([
-          path.join(repoRoot, "sec0-client-sdk", "package.json"),
-          path.join(workspaceRoot, "sec0-client-sdk", "package.json"),
-        ]),
+        path: siblingPackagePath(packageDir, "sec0-client-sdk"),
         canonicalName: "@sec0/client-sdk",
-      },
-      {
-        paths: existingPaths([
-          path.join(repoRoot, "sec0-runtime-protocol", "package.json"),
-          path.join(workspaceRoot, "sec0-runtime-protocol", "package.json"),
-        ]),
-        canonicalName: "sec0-runtime-protocol",
       },
     ];
 
     for (const legacyPackage of legacyPackages) {
-      for (const legacyPath of legacyPackage.paths) {
-        const legacyManifest = readJson(legacyPath);
-        expect(legacyManifest.private).toBe(true);
-        expect(legacyManifest.name).not.toBe(legacyPackage.canonicalName);
-      }
+      const legacyManifest = readJson(legacyPackage.path);
+      expect(legacyManifest.private).toBe(true);
+      expect(legacyManifest.name).not.toBe(legacyPackage.canonicalName);
     }
   });
 

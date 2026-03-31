@@ -300,7 +300,6 @@ export class ControlPlaneClient {
     authToken: string;
     instruction: string;
     text: string;
-    threshold: number;
     provider?: "openai" | "anthropic";
     apiKey?: string;
     model?: string;
@@ -316,7 +315,6 @@ export class ControlPlaneClient {
         body: JSON.stringify({
           instruction: opts.instruction,
           text: opts.text,
-          threshold: opts.threshold,
           ...(opts.provider ? { provider: opts.provider } : {}),
           ...(opts.apiKey ? { api_key: opts.apiKey } : {}),
           ...(opts.model ? { model: opts.model } : {}),

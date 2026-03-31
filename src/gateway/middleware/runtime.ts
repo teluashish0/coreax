@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import {
   createRuntimeAdapter,
   mapRuntimeDecisionRequest,
-  mapRuntimeDecisionToLegacy,
+  mapRuntimeDecisionToEnforcement,
 } from "../../runtime-adapter";
 import type { MiddlewareConfig } from "./config";
 
@@ -15,7 +15,9 @@ export type GatewayDecisionInput = {
   requestIdSuffix: string;
 };
 
-export type GatewayDecisionEvaluator = (input: GatewayDecisionInput) => Promise<{ shouldDeny: boolean }>;
+export type GatewayDecisionEvaluator = (
+  input: GatewayDecisionInput,
+) => Promise<{ shouldBlock: boolean; shouldDeny: boolean }>;
 
 export function createGatewayTraceIds(): { traceId: string; spanId: string } {
   const traceId = (() => {
@@ -63,6 +65,6 @@ export function createGatewayDecisionEvaluator(input: {
         requestId: `${toolRef}:${params.requestIdSuffix}`,
       }),
     );
-    return mapRuntimeDecisionToLegacy(decision);
+    return mapRuntimeDecisionToEnforcement(decision);
   };
 }

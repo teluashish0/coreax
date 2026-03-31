@@ -15,7 +15,7 @@ export function createRuntimeAdapter(config?: RuntimeAdapterConfig): RuntimeAdap
 export { LocalRuntimeAdapter } from "./localAdapter";
 export { RemoteRuntimeAdapter } from "./remoteAdapter";
 export { resolveRuntimeAdapterConfig } from "./resolver";
-export { mapRuntimeDecisionRequest, mapRuntimeDecisionToLegacy, type RuntimeMapperInput, type LegacyRuntimeDecision } from "./mappers";
+export { mapRuntimeDecisionRequest, mapRuntimeDecisionToEnforcement, type RuntimeMapperInput, type LegacyRuntimeDecision } from "./mappers";
 export type {
   RuntimeAdapter,
   RuntimeAdapterConfig,

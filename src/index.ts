@@ -1,5 +1,6 @@
 // Sec0 root entrypoint: intentionally small and stable.
 export { validatePolicy, parsePolicyYaml, normalizeAllowlist, matchesAllowlist } from "./policy";
+export { FIXED_NL_RULE_MATCH_THRESHOLD } from "./policy";
 export type { PolicyObject, LlmJudgeConfig } from "./policy";
 export { createRuntimeAdapter, LocalRuntimeAdapter, RemoteRuntimeAdapter, RUNTIME_PROTOCOL_VERSION } from "./runtime-adapter";
 export type {
@@ -54,3 +55,46 @@ export type {
   EvaluatorPrinciple,
   EvaluatorSource,
 } from "./evaluator";
+export {
+  FileGovernanceStore,
+  HttpGovernanceClient,
+  applyHumanResolutionPayload,
+  executeGovernedAction,
+  normalizeGovernanceSubmission,
+} from "./governance";
+export type {
+  ClarificationAnswer,
+  ClarificationRequest,
+  CreateGovernanceAutoresearchJobInput,
+  ExecutionRecord,
+  ExecutionReflectionRecord,
+  GetGovernanceRuntimeConfigInput,
+  GovernanceAutoresearchCandidate,
+  GovernanceAutoresearchCandidateMetrics,
+  GovernanceAutoresearchCandidateStatus,
+  GovernanceAutoresearchDatasetSummary,
+  GovernanceAutoresearchJob,
+  GovernanceAutoresearchJobDetail,
+  GovernanceAutoresearchJobStatus,
+  GovernanceAutoresearchMutationSurface,
+  GovernanceAutoresearchRollout,
+  GovernanceAutoresearchRolloutStatus,
+  GovernanceAutoresearchScope,
+  GovernanceDecision,
+  GovernanceDecisionValue,
+  GovernanceRuntimeConfig,
+  GovernanceRuntimeConfigAppliedRollout,
+  GovernanceRuntimeConfigVersions,
+  GovernanceSubmission,
+  GovernanceSubmissionResult,
+  GovernanceClient,
+  HumanResolution,
+  HumanResolutionAction,
+  ImprovementProposal,
+  OutcomeRecord,
+  PendingGovernanceReview,
+  PromoteGovernanceAutoresearchJobInput,
+  PromotionEvaluation,
+  RollbackGovernanceAutoresearchJobInput,
+  ResolveGovernanceReviewInput,
+} from "./governance";

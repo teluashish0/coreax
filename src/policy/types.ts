@@ -4,6 +4,8 @@ export type SecurityLevel = "gateway" | "middleware";
 
 export type Severity = "low" | "medium" | "high" | "critical";
 
+export const FIXED_NL_RULE_MATCH_THRESHOLD = 75;
+
 export type PolicyEnforcementReason =
   | "missing_audit_signature"
   | "tool_not_in_allowlist"
@@ -35,14 +37,13 @@ export interface CompliancePackRule {
   name?: string;
   // Rule type. Defaults to "regex" when omitted.
   // "regex": match patterns against scanned text
-  // "nl": use a natural-language instruction and a threshold (0-100) scored by an evaluator
+  // "nl": use a natural-language instruction scored by an evaluator
   type?: "regex" | "nl";
   location?: "input" | "output" | "both" | "run";
   severity?: Severity;
   message?: string;
   patterns?: string[];
   instruction?: string;
-  threshold?: number;
   tags?: string[];
 }
 
@@ -109,6 +110,10 @@ export interface PolicyObject {
     deny_if_unpinned_version?: boolean;
     scan_on_change_only?: boolean;
     block_on_severity?: Severity;
+  };
+  privacy: {
+    redact_outputs: boolean;
+    store_raw_payloads: boolean;
   };
   side_effects: {
     require_idempotency_key: boolean;

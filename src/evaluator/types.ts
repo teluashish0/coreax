@@ -1,7 +1,10 @@
 import { z } from "zod";
 
-export const EvaluatorDecisionSchema = z.enum(["allow", "escalate", "deny"]);
+export const EvaluatorDecisionSchema = z.enum(["allow", "escalate", "clarify", "deny"]);
 export type EvaluatorDecision = z.infer<typeof EvaluatorDecisionSchema>;
+
+export const EvaluatorDecisionBasisSchema = z.enum(["semantic_reasoner"]);
+export type EvaluatorDecisionBasis = z.infer<typeof EvaluatorDecisionBasisSchema>;
 
 export const EvaluatorModeSchema = z.enum(["sync", "async", "hybrid"]);
 export type EvaluatorMode = z.infer<typeof EvaluatorModeSchema>;
@@ -121,6 +124,146 @@ export const EvaluatorConstraintsSchema = z.object({
 }).passthrough();
 export type EvaluatorConstraints = z.infer<typeof EvaluatorConstraintsSchema>;
 
+const EvaluatorHistoryEventSchema = z.object({
+  submissionId: z.string().min(1).max(200).optional(),
+  decision: EvaluatorDecisionSchema.optional(),
+  basis: z.string().min(1).max(120).optional(),
+  policyReason: z.string().min(1).max(500).optional(),
+  action: z.string().min(1).max(120).optional(),
+  summary: z.string().min(1).max(1000).optional(),
+  createdAt: z.string().min(1).max(120).optional(),
+  metadata: z.record(z.unknown()).optional(),
+}).passthrough();
+export type EvaluatorHistoryEvent = z.infer<typeof EvaluatorHistoryEventSchema>;
+
+export const EvaluatorWorkflowSliceSchema = z.object({
+  nodeId: z.string().min(1).max(200).optional(),
+  attemptNumber: z.number().int().nonnegative().optional(),
+  retryGroup: z.string().min(1).max(200).optional(),
+  parentSubmissionIds: z.array(z.string().min(1).max(200)).max(100).default([]),
+  boundaryCrossings: z.array(z.string().min(1).max(200)).max(100).default([]),
+}).passthrough();
+export type EvaluatorWorkflowSlice = z.infer<typeof EvaluatorWorkflowSliceSchema>;
+
+export const EvaluatorDecisionHistorySchema = z.object({
+  priorDecisions: z.array(EvaluatorHistoryEventSchema).max(200).default([]),
+  priorDenies: z.array(EvaluatorHistoryEventSchema).max(200).default([]),
+  priorEscalations: z.array(EvaluatorHistoryEventSchema).max(200).default([]),
+  priorClarifications: z.array(EvaluatorHistoryEventSchema).max(200).default([]),
+  priorHumanResolutions: z.array(EvaluatorHistoryEventSchema).max(200).default([]),
+}).passthrough();
+export type EvaluatorDecisionHistory = z.infer<typeof EvaluatorDecisionHistorySchema>;
+
+const EvaluatorExecutionEventSchema = z.object({
+  submissionId: z.string().min(1).max(200).optional(),
+  status: z.string().min(1).max(120).optional(),
+  summary: z.string().min(1).max(1000).optional(),
+  error: z.string().min(1).max(2000).optional(),
+  executed: z.boolean().optional(),
+  createdAt: z.string().min(1).max(120).optional(),
+  metadata: z.record(z.unknown()).optional(),
+}).passthrough();
+export type EvaluatorExecutionEvent = z.infer<typeof EvaluatorExecutionEventSchema>;
+
+export const EvaluatorExecutionHistorySchema = z.object({
+  recentExecutions: z.array(EvaluatorExecutionEventSchema).max(200).default([]),
+  recentOutcomes: z.array(EvaluatorExecutionEventSchema).max(200).default([]),
+  failureCount: z.number().int().nonnegative().default(0),
+  recoveryCount: z.number().int().nonnegative().default(0),
+}).passthrough();
+export type EvaluatorExecutionHistory = z.infer<typeof EvaluatorExecutionHistorySchema>;
+
+export const EvaluatorReflectionEventSchema = z.object({
+  reflectionId: z.string().min(1).max(200).optional(),
+  submissionId: z.string().min(1).max(200).optional(),
+  runId: z.string().min(1).max(200).optional(),
+  workflowId: z.string().min(1).max(200).optional(),
+  nodeId: z.string().min(1).max(200).optional(),
+  planStepId: z.string().min(1).max(200).nullable().optional(),
+  toolInvoked: z.string().min(1).max(200).nullable().optional(),
+  status: z.string().min(1).max(120).optional(),
+  deviationReason: z.string().min(1).max(2000).optional(),
+  retryReason: z.string().min(1).max(2000).optional(),
+  missingFacts: z.array(z.string().min(1).max(500)).max(100).default([]),
+  confidence: z.number().min(0).max(1).nullable().optional(),
+  needsClarification: z.boolean().optional(),
+  needsHumanReview: z.boolean().optional(),
+  boundaryCrossingsObserved: z.array(z.string().min(1).max(300)).max(100).default([]),
+  stateChangesObserved: z.array(z.record(z.unknown())).max(100).default([]),
+  actor: z.object({
+    actor_id: z.string().min(1).max(200),
+    actor_type: z.string().min(1).max(120).nullable().optional(),
+    actor_role: z.string().min(1).max(120).nullable().optional(),
+    source: z.string().min(1).max(200).nullable().optional(),
+  }).passthrough().optional(),
+  provenance: z.record(z.unknown()).optional(),
+  createdAt: z.string().min(1).max(120).optional(),
+  metadata: z.record(z.unknown()).optional(),
+}).passthrough();
+export type EvaluatorReflectionEvent = z.infer<typeof EvaluatorReflectionEventSchema>;
+
+export const EvaluatorReflectionHistorySchema = z.object({
+  enabled: z.boolean().default(false),
+  recentReflections: z.array(EvaluatorReflectionEventSchema).max(200).default([]),
+  repeatedDeviationCount: z.number().int().nonnegative().default(0),
+  repeatedUncertaintyCount: z.number().int().nonnegative().default(0),
+  persistentMissingFacts: z.array(z.string().min(1).max(500)).max(100).default([]),
+  reflectionOutcomeDisagreementCount: z.number().int().nonnegative().default(0),
+  reflectionConfirmedRetryCount: z.number().int().nonnegative().default(0),
+}).passthrough();
+export type EvaluatorReflectionHistory = z.infer<typeof EvaluatorReflectionHistorySchema>;
+
+const EvaluatorStateDeltaSchema = z.object({
+  resource: z.string().min(1).max(300).optional(),
+  boundary: z.string().min(1).max(200).optional(),
+  kind: z.string().min(1).max(120).optional(),
+  summary: z.string().min(1).max(1000).optional(),
+  createdAt: z.string().min(1).max(120).optional(),
+}).passthrough();
+export type EvaluatorStateDelta = z.infer<typeof EvaluatorStateDeltaSchema>;
+
+const EvaluatorAuditEvidenceRefSchema = z.object({
+  ref: z.string().min(1).max(300).optional(),
+  source: z.string().min(1).max(120).optional(),
+  decision: z.string().min(1).max(120).optional(),
+  tool: z.string().min(1).max(200).optional(),
+  op: z.string().min(1).max(120).optional(),
+  summary: z.string().min(1).max(1000).optional(),
+}).passthrough();
+export type EvaluatorAuditEvidenceRef = z.infer<typeof EvaluatorAuditEvidenceRefSchema>;
+
+export const EvaluatorDerivedFactsSchema = z.object({
+  missingApprovals: z.array(z.string().min(1).max(120)).max(100).default([]),
+  missingFacts: z.array(z.string().min(1).max(500)).max(100).default([]),
+  suggestedQuestions: z.array(z.string().min(1).max(500)).max(100).default([]),
+  suggestedSources: z.array(z.string().min(1).max(500)).max(100).default([]),
+  resumeConditions: z.array(z.string().min(1).max(500)).max(100).default([]),
+  retryCount: z.number().int().nonnegative().default(0),
+  retryReasons: z.array(z.string().min(1).max(500)).max(100).default([]),
+  priorHumanEditCount: z.number().int().nonnegative().default(0),
+  unresolvedClarificationCount: z.number().int().nonnegative().default(0),
+  priorDenyCount: z.number().int().nonnegative().default(0),
+  priorEscalationCount: z.number().int().nonnegative().default(0),
+  failureCount: z.number().int().nonnegative().default(0),
+  recoveryCount: z.number().int().nonnegative().default(0),
+  repeatedReflectionDeviationCount: z.number().int().nonnegative().default(0),
+  repeatedReflectionUncertaintyCount: z.number().int().nonnegative().default(0),
+  persistentReflectionMissingFacts: z.array(z.string().min(1).max(500)).max(100).default([]),
+  reflectionOutcomeDisagreementCount: z.number().int().nonnegative().default(0),
+  reflectionConfirmedRetryCount: z.number().int().nonnegative().default(0),
+  reflectionEnabled: z.boolean().default(false),
+  contradictoryState: z.array(z.string().min(1).max(500)).max(100).default([]),
+  exactMatchReusable: z.boolean().default(false),
+  managedRuleEligible: z.boolean().default(false),
+  lowRiskReadOnly: z.boolean().default(false),
+  requiresSemanticReview: z.boolean().default(true),
+  sideEffectful: z.boolean().default(false),
+  crossBoundary: z.boolean().default(false),
+  disclosureRelevant: z.boolean().default(false),
+  approvalSensitive: z.boolean().default(false),
+}).passthrough();
+export type EvaluatorDerivedFacts = z.infer<typeof EvaluatorDerivedFactsSchema>;
+
 export const EvaluatorInputSchema = z.object({
   action: EvaluatorActionSchema,
   actor: EvaluatorActorSchema,
@@ -129,6 +272,64 @@ export const EvaluatorInputSchema = z.object({
   runtimeContext: EvaluatorRuntimeContextSchema,
   sourceUse: EvaluatorSourceUseSchema,
   constraints: EvaluatorConstraintsSchema,
+  workflowSlice: EvaluatorWorkflowSliceSchema.default({
+    parentSubmissionIds: [],
+    boundaryCrossings: [],
+  }),
+  decisionHistory: EvaluatorDecisionHistorySchema.default({
+    priorDecisions: [],
+    priorDenies: [],
+    priorEscalations: [],
+    priorClarifications: [],
+    priorHumanResolutions: [],
+  }),
+  executionHistory: EvaluatorExecutionHistorySchema.default({
+    recentExecutions: [],
+    recentOutcomes: [],
+    failureCount: 0,
+    recoveryCount: 0,
+  }),
+  reflectionHistory: EvaluatorReflectionHistorySchema.default({
+    enabled: false,
+    recentReflections: [],
+    repeatedDeviationCount: 0,
+    repeatedUncertaintyCount: 0,
+    persistentMissingFacts: [],
+    reflectionOutcomeDisagreementCount: 0,
+    reflectionConfirmedRetryCount: 0,
+  }),
+  stateDeltas: z.array(EvaluatorStateDeltaSchema).max(200).default([]),
+  auditEvidence: z.array(EvaluatorAuditEvidenceRefSchema).max(200).default([]),
+  derivedFacts: EvaluatorDerivedFactsSchema.default({
+    missingApprovals: [],
+    missingFacts: [],
+    suggestedQuestions: [],
+    suggestedSources: [],
+    resumeConditions: [],
+    retryCount: 0,
+    retryReasons: [],
+    priorHumanEditCount: 0,
+    unresolvedClarificationCount: 0,
+    priorDenyCount: 0,
+    priorEscalationCount: 0,
+    failureCount: 0,
+    recoveryCount: 0,
+    repeatedReflectionDeviationCount: 0,
+    repeatedReflectionUncertaintyCount: 0,
+    persistentReflectionMissingFacts: [],
+    reflectionOutcomeDisagreementCount: 0,
+    reflectionConfirmedRetryCount: 0,
+    reflectionEnabled: false,
+    contradictoryState: [],
+    exactMatchReusable: false,
+    managedRuleEligible: false,
+    lowRiskReadOnly: false,
+    requiresSemanticReview: true,
+    sideEffectful: false,
+    crossBoundary: false,
+    disclosureRelevant: false,
+    approvalSensitive: false,
+  }),
   metadata: z.record(z.unknown()).default({}),
 }).passthrough();
 export type EvaluatorInput = z.infer<typeof EvaluatorInputSchema>;
@@ -155,13 +356,21 @@ export type EvaluatorRemediation = z.infer<typeof EvaluatorRemediationSchema>;
 
 export const EvaluatorOutputSchema = z.object({
   decision: EvaluatorDecisionSchema,
+  basis: EvaluatorDecisionBasisSchema,
   confidence: z.number().min(0).max(1),
   principles: z.array(EvaluatorPrincipleSchema).max(20),
   summary: z.string().min(1).max(2000),
   reasoning: z.string().min(1).max(4000),
   evidence: z.array(EvaluatorEvidenceSchema).max(50),
+  evidenceRefs: z.array(z.string().min(1).max(300)).max(100).default([]),
   suggestedSeverity: EvaluatorSeveritySchema,
   suggestedRemediation: EvaluatorRemediationSchema,
   normalizedFingerprint: z.string().min(8).max(128),
+  missingFacts: z.array(z.string().min(1).max(500)).max(100).default([]),
+  questions: z.array(z.string().min(1).max(500)).max(100).default([]),
+  suggestedSources: z.array(z.string().min(1).max(500)).max(100).default([]),
+  resumeConditions: z.array(z.string().min(1).max(500)).max(100).default([]),
+  reasonerVersion: z.string().min(1).max(120),
+  calibrationVersion: z.string().min(1).max(120),
 }).passthrough();
 export type EvaluatorOutput = z.infer<typeof EvaluatorOutputSchema>;

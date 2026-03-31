@@ -299,7 +299,7 @@ export function buildDetectorContextEvaluatorPatch(params: {
 
 export function annotateFindingsWithContextualAdjudication(params: {
   findings: AgentGuardFinding[] | undefined;
-  decision: "allow" | "escalate" | "deny" | null;
+  decision: "allow" | "escalate" | "clarify" | "deny" | null;
   fingerprint?: string | null;
 }): AgentGuardFinding[] {
   if (!Array.isArray(params.findings) || params.findings.length === 0 || !params.decision) {
@@ -321,7 +321,7 @@ export function annotateFindingsWithContextualAdjudication(params: {
 export function resolveDetectorContextualViolation(params: {
   violation: string | null;
   findings: AgentGuardFinding[] | undefined;
-  contextualDecision: "allow" | "escalate" | "deny" | null;
+  contextualDecision: "allow" | "escalate" | "clarify" | "deny" | null;
   contextualFingerprint?: string | null;
 }): {
   violation: string | null;

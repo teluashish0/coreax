@@ -57,8 +57,9 @@ export function mapRuntimeDecisionRequest(input: RuntimeMapperInput): RuntimeDec
 }
 
 export interface LegacyRuntimeDecision {
+  shouldBlock: boolean;
   shouldDeny: boolean;
-  decision: "allow" | "deny";
+  decision: RuntimeDecisionOutput["decision"];
   reason?: string;
   reasons: string[];
   obligations: RuntimeDecisionOutput["obligations"];
@@ -67,8 +68,9 @@ export interface LegacyRuntimeDecision {
   adapterMode: RuntimeDecisionOutput["adapterMode"];
 }
 
-export function mapRuntimeDecisionToLegacy(output: RuntimeDecisionOutput): LegacyRuntimeDecision {
+export function mapRuntimeDecisionToEnforcement(output: RuntimeDecisionOutput): LegacyRuntimeDecision {
   return {
+    shouldBlock: output.decision !== "allow",
     shouldDeny: output.decision === "deny",
     decision: output.decision,
     ...(output.reason ? { reason: output.reason } : {}),

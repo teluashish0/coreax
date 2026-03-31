@@ -1,7 +1,7 @@
 export const RUNTIME_PROTOCOL_VERSION = "2026-02-01" as const;
 
 export type RuntimeAdapterMode = "local" | "remote";
-export type RuntimeDecisionAction = "allow" | "deny";
+export type RuntimeDecisionAction = "allow" | "deny" | "escalate" | "clarify";
 export type RuntimeExecutionLayer = "middleware" | "gateway" | "decorator";
 export type RuntimeEnforcementMode = "observe" | "enforce";
 export type RuntimeEvaluationStrategy = "deny_on_match" | "deny_on_any";

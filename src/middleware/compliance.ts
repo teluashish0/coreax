@@ -19,7 +19,6 @@ type CompiledComplianceRuleApp = {
   type: "regex" | "nl";
   patterns?: RegExp[];
   instruction?: string;
-  threshold?: number;
 };
 
 function normalizeCompliancePattern(raw: string): { source: string; flags: string } {
@@ -47,7 +46,6 @@ export function buildCompliancePackScanners(opts: {
   nlEvaluator?: (input: {
     instruction: string;
     text: string;
-    threshold: number;
     llmJudge?: { provider: "openai" | "anthropic"; apiKey?: string; model?: string };
   }) => Promise<{ score: number; matched: boolean; evidence: string } | null>;
 }): {
@@ -78,11 +76,9 @@ export function buildCompliancePackScanners(opts: {
     const nlEval = async (input: {
       instruction: string;
       text: string;
-      threshold: number;
     }): Promise<NlEvalCached | null> => {
       if (!opts.nlEvaluator) return null;
       const instruction = String(input.instruction || "").trim();
-      const threshold = Number.isFinite(input.threshold) ? Math.max(0, Math.min(100, Math.round(input.threshold))) : 50;
       const textRaw = String(input.text || "");
       const text = textRaw.length > 8000 ? textRaw.slice(0, 8000) : textRaw;
       if (!instruction || !text.trim()) return null;
@@ -93,7 +89,6 @@ export function buildCompliancePackScanners(opts: {
             tenant: tenantKey,
             provider: llmJudgeCfg?.provider,
             instruction,
-            threshold,
             text,
           }),
         ),
@@ -106,7 +101,6 @@ export function buildCompliancePackScanners(opts: {
         const evaluated = await opts.nlEvaluator({
           instruction,
           text,
-          threshold,
           ...(llmJudgeCfg ? { llmJudge: llmJudgeCfg } : {}),
         });
         if (!evaluated) return null;
@@ -172,13 +166,10 @@ export function buildCompliancePackScanners(opts: {
 
           let patterns: RegExp[] | undefined;
           let instruction: string | undefined;
-          let threshold: number | undefined;
 
           if (ruleType === "nl") {
             instruction = typeof r?.instruction === "string" ? r.instruction.trim() : "";
-            const thr = Number(r?.threshold);
-            threshold = Number.isFinite(thr) ? Math.max(0, Math.min(100, Math.round(thr))) : undefined;
-            if (!instruction || threshold === undefined) continue;
+            if (!instruction) continue;
           } else {
             const patternsRaw: string[] = Array.isArray(r.patterns) ? r.patterns.map((x: any) => String(x)) : [];
             const compiled: RegExp[] = [];
@@ -216,7 +207,6 @@ export function buildCompliancePackScanners(opts: {
             type: ruleType,
             ...(patterns ? { patterns } : {}),
             ...(instruction ? { instruction } : {}),
-            ...(threshold !== undefined ? { threshold } : {}),
           });
         }
       }
@@ -260,11 +250,10 @@ export function buildCompliancePackScanners(opts: {
         }
 
         const instruction = String(app.instruction || "").trim();
-        const threshold = typeof app.threshold === "number" ? app.threshold : 50;
         if (!instruction) continue;
-        const scored = await nlEval({ instruction, text, threshold });
+        const scored = await nlEval({ instruction, text });
         if (!scored || !scored.matched) continue;
-        const scoreText = `score=${scored.score} threshold=${threshold}`;
+        const scoreText = `score=${scored.score}`;
         const evidence = scored.evidence ? `${scoreText}; ${scored.evidence}` : scoreText;
         out.push({
           code: "agent_policy_violation",

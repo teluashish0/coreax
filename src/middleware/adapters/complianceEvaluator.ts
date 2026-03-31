@@ -1,3 +1,4 @@
+import { FIXED_NL_RULE_MATCH_THRESHOLD } from "../../policy";
 import type { ControlPlaneClient } from "./controlPlaneClient";
 
 export type NlJudgeConfig = {
@@ -9,7 +10,6 @@ export type NlJudgeConfig = {
 export type NlEvalInput = {
   instruction: string;
   text: string;
-  threshold: number;
   llmJudge?: NlJudgeConfig;
 };
 
@@ -30,16 +30,12 @@ export function createControlPlaneNlEvaluator(opts: {
       const instruction = String(input.instruction || "").trim();
       const textRaw = String(input.text || "");
       const text = textRaw.length > 8000 ? textRaw.slice(0, 8000) : textRaw;
-      const threshold = Number.isFinite(input.threshold)
-        ? Math.max(0, Math.min(100, Math.round(input.threshold)))
-        : 50;
       if (!instruction || !text.trim()) return null;
 
       const out = await opts.client.evaluateComplianceNl({
         authToken,
         instruction,
         text,
-        threshold,
         provider: input.llmJudge?.provider,
         apiKey: input.llmJudge?.apiKey,
         model: input.llmJudge?.model,
@@ -47,7 +43,7 @@ export function createControlPlaneNlEvaluator(opts: {
       const score = Number.isFinite(out.score) ? Math.max(0, Math.min(100, Math.round(out.score))) : 0;
       return {
         score,
-        matched: score >= threshold,
+        matched: score >= FIXED_NL_RULE_MATCH_THRESHOLD,
         evidence: typeof out.evidence === "string" ? out.evidence.trim().slice(0, 240) : "",
       };
     } catch {

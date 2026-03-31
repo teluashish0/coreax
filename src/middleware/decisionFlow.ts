@@ -1,5 +1,5 @@
 import type { ApprovalVerifier, ApprovalVerificationResult, RuntimeInvoker } from "../core/contracts";
-import { mapRuntimeDecisionRequest, mapRuntimeDecisionToLegacy } from "../runtime-adapter";
+import { mapRuntimeDecisionRequest, mapRuntimeDecisionToEnforcement } from "../runtime-adapter";
 import type { AgentGuardFinding } from "./agentGuard";
 import { normalizePolicyReasonToken, readHeaderCaseInsensitive, toolUri } from "./tooling";
 
@@ -154,7 +154,7 @@ export function createDecisionFlow(context: DecisionFlowContext) {
         requestId: `${toolUri(context.server.name, context.tool)}:${opts?.requestIdSuffix || "runtime"}`,
       }),
     );
-    const shouldDeny = mapRuntimeDecisionToLegacy(runtimeDecision).shouldDeny;
+    const shouldDeny = mapRuntimeDecisionToEnforcement(runtimeDecision).shouldDeny;
     runtimeDecisionCache.set(cacheKey, shouldDeny);
     return shouldDeny;
   };

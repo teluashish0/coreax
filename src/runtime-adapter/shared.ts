@@ -37,7 +37,9 @@ export function normalizeStringArray(value: unknown): string[] {
 }
 
 export function normalizeDecisionAction(value: unknown): RuntimeDecisionAction | null {
-  return value === "allow" || value === "deny" ? value : null;
+  return value === "allow" || value === "deny" || value === "escalate" || value === "clarify"
+    ? value
+    : null;
 }
 
 export function normalizeRuntimeDecisionInput(
@@ -131,7 +133,7 @@ export function parseRuntimeProtocolResponse(
   }
   const reasons = normalizeStringArray(payload?.decision?.reasons);
   const primaryReasonRaw = typeof payload?.decision?.reason === "string" ? payload.decision.reason.trim() : "";
-  const reason = primaryReasonRaw || (action === "deny" ? reasons[0] : undefined);
+  const reason = primaryReasonRaw || (action !== "allow" ? reasons[0] : undefined);
   return {
     protocolVersion,
     adapterMode,

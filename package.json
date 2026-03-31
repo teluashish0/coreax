@@ -5,24 +5,6 @@
   "description": "Open-source Sec0 TypeScript SDK with decorators, middleware, gateway helpers, guard, audit, and protocol utilities",
   "license": "Apache-2.0",
   "author": "WormAI, Inc.",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/teluashish0/sec0-sdk.git"
-  },
-  "homepage": "https://github.com/teluashish0/sec0-sdk#readme",
-  "bugs": {
-    "url": "https://github.com/teluashish0/sec0-sdk/issues"
-  },
-  "keywords": [
-    "sec0",
-    "security",
-    "ai",
-    "agents",
-    "guardrails",
-    "mcp",
-    "audit",
-    "opentelemetry"
-  ],
   "packageManager": "npm@10.8.2",
   "engines": {
     "node": ">=20"
@@ -74,13 +56,17 @@
       "types": "./dist/middleware/index.d.ts",
       "default": "./dist/middleware/index.js"
     },
+    "./escalation": {
+      "types": "./dist/escalation/index.d.ts",
+      "default": "./dist/escalation/index.js"
+    },
     "./guard": {
       "types": "./dist/guard/index.d.ts",
       "default": "./dist/guard/index.js"
     },
-    "./review-loop": {
-      "types": "./dist/review-loop/index.d.ts",
-      "default": "./dist/review-loop/index.js"
+    "./governance": {
+      "types": "./dist/governance/index.d.ts",
+      "default": "./dist/governance/index.js"
     },
     "./instrumentation": {
       "types": "./dist/instrumentation/index.d.ts",
@@ -146,5 +132,23 @@
     "rimraf": "^5.0.10",
     "typescript": "^5.9.3",
     "vitest": "^1.6.1"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/teluashish0/sec0-sdk.git"
+  },
+  "homepage": "https://github.com/teluashish0/sec0-sdk#readme",
+  "bugs": {
+    "url": "https://github.com/teluashish0/sec0-sdk/issues"
+  },
+  "keywords": [
+    "sec0",
+    "security",
+    "ai",
+    "agents",
+    "guardrails",
+    "mcp",
+    "audit",
+    "opentelemetry"
+  ]
 }

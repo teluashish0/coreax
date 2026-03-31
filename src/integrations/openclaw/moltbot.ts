@@ -15,6 +15,7 @@ import {
   type EvaluatorSource,
 } from "../../evaluator";
 import {
+  FIXED_NL_RULE_MATCH_THRESHOLD,
   parsePolicyYaml,
   matchesAllowlist,
   type PolicyEnforcementReason,
@@ -558,10 +559,10 @@ function mapContextualEvaluatorFindingToAgentFinding(
 }
 
 function evaluatorDecisionToPolicyReason(
-  decision: "allow" | "escalate" | "deny",
+  decision: "allow" | "escalate" | "clarify" | "deny",
 ): PolicyEnforcementReason | null {
   if (decision === "deny") return "contextual_evaluator_denied";
-  if (decision === "escalate") return "contextual_evaluator_escalated";
+  if (decision === "escalate" || decision === "clarify") return "contextual_evaluator_escalated";
   return null;
 }
 
@@ -679,6 +680,65 @@ function buildDefaultToolCallEvaluatorInput(params: {
       requiredApprovals: normalizeStringArray(metadata?.required_approvals),
       forbiddenBoundaries: [],
     },
+    workflowSlice: {
+      nodeId: params.ctx?.agentId || params.ctx?.sessionKey,
+      parentSubmissionIds: [],
+      boundaryCrossings: destination ? [destination] : [],
+    },
+    decisionHistory: {
+      priorDecisions: [],
+      priorDenies: [],
+      priorEscalations: [],
+      priorClarifications: [],
+      priorHumanResolutions: [],
+    },
+    executionHistory: {
+      recentExecutions: [],
+      recentOutcomes: [],
+      failureCount: 0,
+      recoveryCount: 0,
+    },
+    reflectionHistory: {
+      enabled: false,
+      recentReflections: [],
+      repeatedDeviationCount: 0,
+      repeatedUncertaintyCount: 0,
+      persistentMissingFacts: [],
+      reflectionOutcomeDisagreementCount: 0,
+      reflectionConfirmedRetryCount: 0,
+    },
+    stateDeltas: [],
+    auditEvidence: [],
+    derivedFacts: {
+      missingApprovals: [],
+      missingFacts: [],
+      suggestedQuestions: [],
+      suggestedSources: [],
+      resumeConditions: [],
+      retryCount: 0,
+      retryReasons: [],
+      priorHumanEditCount: 0,
+      unresolvedClarificationCount: 0,
+      priorDenyCount: 0,
+      priorEscalationCount: 0,
+      failureCount: 0,
+      recoveryCount: 0,
+      repeatedReflectionDeviationCount: 0,
+      repeatedReflectionUncertaintyCount: 0,
+      persistentReflectionMissingFacts: [],
+      reflectionOutcomeDisagreementCount: 0,
+      reflectionConfirmedRetryCount: 0,
+      reflectionEnabled: false,
+      contradictoryState: [],
+      exactMatchReusable: false,
+      managedRuleEligible: true,
+      lowRiskReadOnly: operation === "read" && !destination,
+      requiresSemanticReview: operation !== "read" || Boolean(destination),
+      sideEffectful: operation !== "read",
+      crossBoundary: Boolean(destination),
+      disclosureRelevant: false,
+      approvalSensitive: normalizeStringArray(metadata?.required_approvals).length > 0,
+    },
     metadata: {
       tenant: params.tenant,
       server_name: params.serverName,
@@ -769,6 +829,65 @@ function buildDefaultOutboundMessageEvaluatorInput(params: {
       requiredPrerequisites: normalizeStringArray(metadata?.required_prerequisites),
       requiredApprovals: normalizeStringArray(metadata?.required_approvals),
       forbiddenBoundaries: [],
+    },
+    workflowSlice: {
+      nodeId: params.ctx?.conversationId || params.ctx?.accountId,
+      parentSubmissionIds: [],
+      boundaryCrossings: normalizeStringArray([params.ctx?.channelId, typeof params.payload.to === "string" ? params.payload.to : undefined]),
+    },
+    decisionHistory: {
+      priorDecisions: [],
+      priorDenies: [],
+      priorEscalations: [],
+      priorClarifications: [],
+      priorHumanResolutions: [],
+    },
+    executionHistory: {
+      recentExecutions: [],
+      recentOutcomes: [],
+      failureCount: 0,
+      recoveryCount: 0,
+    },
+    reflectionHistory: {
+      enabled: false,
+      recentReflections: [],
+      repeatedDeviationCount: 0,
+      repeatedUncertaintyCount: 0,
+      persistentMissingFacts: [],
+      reflectionOutcomeDisagreementCount: 0,
+      reflectionConfirmedRetryCount: 0,
+    },
+    stateDeltas: [],
+    auditEvidence: [],
+    derivedFacts: {
+      missingApprovals: [],
+      missingFacts: [],
+      suggestedQuestions: [],
+      suggestedSources: [],
+      resumeConditions: [],
+      retryCount: 0,
+      retryReasons: [],
+      priorHumanEditCount: 0,
+      unresolvedClarificationCount: 0,
+      priorDenyCount: 0,
+      priorEscalationCount: 0,
+      failureCount: 0,
+      recoveryCount: 0,
+      repeatedReflectionDeviationCount: 0,
+      repeatedReflectionUncertaintyCount: 0,
+      persistentReflectionMissingFacts: [],
+      reflectionOutcomeDisagreementCount: 0,
+      reflectionConfirmedRetryCount: 0,
+      reflectionEnabled: false,
+      contradictoryState: [],
+      exactMatchReusable: false,
+      managedRuleEligible: true,
+      lowRiskReadOnly: false,
+      requiresSemanticReview: true,
+      sideEffectful: true,
+      crossBoundary: true,
+      disclosureRelevant: true,
+      approvalSensitive: normalizeStringArray(metadata?.required_approvals).length > 0,
     },
     metadata: {
       tenant: params.tenant,
@@ -1111,7 +1230,6 @@ type CompiledComplianceRuleApp = {
   type: "regex" | "nl";
   patterns?: RegExp[];
   instruction?: string;
-  threshold?: number;
 };
 
 function normalizeCompliancePattern(raw: string): { source: string; flags: string } {
@@ -1167,18 +1285,17 @@ function buildCompliancePackScanners(opts: {
     const tenantKey = String(cfg.tenant || "").trim();
 
     const nlCache: Map<string, NlEvalCached> = new Map();
-    const nlEval = async (input: { instruction: string; text: string; threshold: number }): Promise<NlEvalCached | null> => {
+    const nlEval = async (input: { instruction: string; text: string }): Promise<NlEvalCached | null> => {
       const nlCfg = cfg.compliance?.nlEval;
       if (!nlCfg) return null;
 
       const instruction = String(input.instruction || "").trim();
-      const threshold = Number.isFinite(input.threshold) ? Math.max(0, Math.min(100, Math.round(input.threshold))) : 50;
       const textRaw = String(input.text || "");
       const text = textRaw.length > 8000 ? textRaw.slice(0, 8000) : textRaw;
       if (!instruction || !text.trim()) return null;
 
       const cacheKey = sha256Hex(
-        Buffer.from(JSON.stringify({ tenant: tenantKey, provider: nlCfg.provider, instruction, threshold, text })),
+        Buffer.from(JSON.stringify({ tenant: tenantKey, provider: nlCfg.provider, instruction, text })),
       );
       const hit = nlCache.get(cacheKey);
       const now = Date.now();
@@ -1207,7 +1324,7 @@ function buildCompliancePackScanners(opts: {
         ];
         const hitWord = keywords.find((k) => lower.includes(k));
         const score = hitWord ? 90 : 0;
-        const matched = score >= threshold;
+        const matched = score >= FIXED_NL_RULE_MATCH_THRESHOLD;
         const evidence = hitWord ? `heuristic keyword='${hitWord}'` : "";
         return cached({ score, matched, evidence, expiresAt: now + 5 * 60 * 1000 });
       }
@@ -1225,13 +1342,13 @@ function buildCompliancePackScanners(opts: {
               "Content-Type": "application/json",
               ...(nlCfg.bearerToken ? { Authorization: `Bearer ${String(nlCfg.bearerToken).trim()}` } : {}),
             },
-            body: JSON.stringify({ instruction, text, threshold, tenant: tenantKey }),
+            body: JSON.stringify({ instruction, text, tenant: tenantKey }),
             signal: controller.signal as any,
           } as any);
           const data: any = await r.json().catch(() => ({}));
           if (!r.ok) return null;
           const score = clampScore(data?.score);
-          const matched = score >= threshold;
+          const matched = score >= FIXED_NL_RULE_MATCH_THRESHOLD;
           const evidence = clampEvidence(data?.evidence);
           return cached({ score, matched, evidence, expiresAt: now + 5 * 60 * 1000 });
         } catch {
@@ -1300,7 +1417,7 @@ function buildCompliancePackScanners(opts: {
           }
 
           const score = clampScore(parsed?.score);
-          const matched = score >= threshold;
+          const matched = score >= FIXED_NL_RULE_MATCH_THRESHOLD;
           const evidence = clampEvidence(parsed?.evidence);
           return cached({ score, matched, evidence, expiresAt: now + 5 * 60 * 1000 });
         } catch {
@@ -1369,7 +1486,7 @@ function buildCompliancePackScanners(opts: {
           }
 
           const score = clampScore(parsed?.score);
-          const matched = score >= threshold;
+          const matched = score >= FIXED_NL_RULE_MATCH_THRESHOLD;
           const evidence = clampEvidence(parsed?.evidence);
           return cached({ score, matched, evidence, expiresAt: now + 5 * 60 * 1000 });
         } catch {
@@ -1433,13 +1550,10 @@ function buildCompliancePackScanners(opts: {
 
           let patterns: RegExp[] | undefined = undefined;
           let instruction: string | undefined = undefined;
-          let threshold: number | undefined = undefined;
 
           if (ruleType === "nl") {
             instruction = typeof r?.instruction === "string" ? r.instruction.trim() : "";
-            const thr = Number(r?.threshold);
-            threshold = Number.isFinite(thr) ? Math.max(0, Math.min(100, Math.round(thr))) : undefined;
-            if (!instruction || threshold === undefined) continue;
+            if (!instruction) continue;
           } else {
             const patternsRaw: string[] = Array.isArray(r.patterns) ? r.patterns.map((x: any) => String(x)) : [];
             const compiled: RegExp[] = [];
@@ -1477,7 +1591,6 @@ function buildCompliancePackScanners(opts: {
             type: ruleType,
             ...(patterns ? { patterns } : {}),
             ...(instruction ? { instruction } : {}),
-            ...(threshold !== undefined ? { threshold } : {}),
           });
         }
       }
@@ -1526,11 +1639,10 @@ function buildCompliancePackScanners(opts: {
 
         if (app.type === "nl") {
           const instruction = String(app.instruction || "").trim();
-          const threshold = typeof app.threshold === "number" ? app.threshold : 50;
           if (!instruction) continue;
-          const scored = await nlEval({ instruction, text, threshold });
+          const scored = await nlEval({ instruction, text });
           if (!scored || !scored.matched) continue;
-          const scoreText = `score=${scored.score} threshold=${threshold}`;
+          const scoreText = `score=${scored.score}`;
           const evidence = scored.evidence ? `${scoreText}; ${scored.evidence}` : scoreText;
           out.push({
             code: "agent_policy_violation",
@@ -1579,7 +1691,7 @@ function buildAgentGuard(policy: PolicyObject, cfg: Sec0MoltbotConfig): AgentGua
     const strict = complianceCfg.strict !== undefined ? complianceCfg.strict : cfg.mode === "enforce";
     if (strict && !complianceCfg.nlEval) {
       throw new Error(
-        "[sec0-moltbot] Profile contains compliance rules of type 'nl', but compliance.nlEval is not configured.",
+        "[sec0-moltbot] Policy contains compliance rules of type 'nl', but compliance.nlEval is not configured.",
       );
     }
   }
@@ -1908,7 +2020,7 @@ export function createMoltbotHooks(cfg: Sec0MoltbotConfig): MoltbotHookBundle {
       await refreshControlPlanePolicy();
     }
     if (!policy) {
-      throw new Error("[sec0-moltbot] Profile not loaded.");
+      throw new Error("[sec0-moltbot] Policy not loaded.");
     }
     return policy;
   };
@@ -2003,7 +2115,7 @@ export function createMoltbotHooks(cfg: Sec0MoltbotConfig): MoltbotHookBundle {
       agentGuard = buildAgentGuard(effectivePolicy, resolved);
       agentGuardPolicyHash = currentHash;
       if (useControlPlanePolicy && agentGuard) {
-        logInfo("Profile refreshed from control-plane; agent guard rebuilt.");
+        logInfo("Policy refreshed from control-plane; agent guard rebuilt.");
       }
     }
     return agentGuard;
@@ -2118,7 +2230,7 @@ export function createMoltbotHooks(cfg: Sec0MoltbotConfig): MoltbotHookBundle {
     defaultInput: EvaluatorInput;
     detectorPatch?: EvaluatorInputPatch | null;
   }): Promise<{
-    decision: "allow" | "escalate" | "deny" | null;
+    decision: "allow" | "escalate" | "clarify" | "deny" | null;
     violation: PolicyEnforcementReason | null;
     findings: AgentGuardFinding[];
     finding: ContextualEvaluatorFinding | null;
@@ -2747,8 +2859,8 @@ export function createMoltbotHooks(cfg: Sec0MoltbotConfig): MoltbotHookBundle {
             ruleId: f.rule_id,
             message: f.message,
             severity: f.severity,
-            // Include pack/policy attribution and compact evidence to support closed-loop NL policy tuning.
-            // (Evidence for NL rules includes score/threshold and a short excerpt.)
+            // Include pack/policy attribution and compact evidence to support review and follow-up remediation.
+            // (Evidence for NL rules includes the evaluator score and a short excerpt.)
             policyId: (f as any).policy_id ?? null,
             packId: (f as any).pack_id ?? null,
             evidence: (f as any).evidence ?? null,

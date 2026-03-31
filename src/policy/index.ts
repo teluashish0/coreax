@@ -4,16 +4,41 @@ import { parse as parseYaml } from "yaml";
 import { policySchema } from "./schema";
 import type { PolicyObject, ValidationResult } from "./types";
 
+export { FIXED_NL_RULE_MATCH_THRESHOLD } from "./types";
 export type { PolicyObject, LlmJudgeConfig, PolicyEnforcementReason } from "./types";
 
 const ajv = new Ajv2020({ allErrors: true, strict: true });
 addFormats(ajv);
 const validate = ajv.compile(policySchema);
 
+function stripLegacyComplianceThresholds(policy: unknown): unknown {
+  if (!policy || typeof policy !== "object" || Array.isArray(policy)) {
+    return policy;
+  }
+  const next = JSON.parse(JSON.stringify(policy)) as Record<string, unknown>;
+  const compliance =
+    next.compliance && typeof next.compliance === "object" && !Array.isArray(next.compliance)
+      ? (next.compliance as Record<string, unknown>)
+      : null;
+  const packs = Array.isArray(compliance?.packs) ? compliance.packs : [];
+  for (const pack of packs) {
+    if (!pack || typeof pack !== "object" || Array.isArray(pack)) continue;
+    const rules = Array.isArray((pack as Record<string, unknown>).rules)
+      ? ((pack as Record<string, unknown>).rules as unknown[])
+      : [];
+    for (const rule of rules) {
+      if (!rule || typeof rule !== "object" || Array.isArray(rule)) continue;
+      delete (rule as Record<string, unknown>).threshold;
+    }
+  }
+  return next;
+}
+
 export function validatePolicy(policy: unknown): ValidationResult & { policy?: PolicyObject } {
-  const valid = validate(policy);
+  const sanitized = stripLegacyComplianceThresholds(policy);
+  const valid = validate(sanitized);
   if (valid) {
-    return { valid: true, policy: policy as PolicyObject };
+    return { valid: true, policy: sanitized as PolicyObject };
   }
   const errors = (validate.errors || []).map(formatAjvError);
   return { valid: false, errors };

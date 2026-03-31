@@ -10,7 +10,6 @@ import {
   normalizeStringArray,
   severityFromScore,
 } from "./classification";
-import { contentHasConcreteSensitiveDisclosure, looksLikePrerequisiteSeekingReply } from "./contentSignals";
 import { applyDetectorFindingSignals } from "./scoring";
 import {
   EvaluatorInputSchema,
@@ -75,7 +74,21 @@ export function evaluateContextualInputLocal(
   const disclosureBudgetMax = input.constraints.disclosureBudget?.maxRecords;
   const estimatedRecords = input.action.data?.estimatedRecords;
   const contentExcerpt = contentExcerptFromEvaluatorInput(input);
-  const prerequisiteSeekingReply = looksLikePrerequisiteSeekingReply(input, contentExcerpt, unresolvedPrerequisites);
+  const missingFacts = normalizeStringArray(input.derivedFacts.missingFacts);
+  const clarificationQuestions = normalizeStringArray(input.derivedFacts.suggestedQuestions);
+  const reflectionMissingFacts = normalizeStringArray(
+    input.derivedFacts.persistentReflectionMissingFacts,
+  );
+  const reflectionNeedsHumanReview =
+    Boolean(input.derivedFacts.repeatedReflectionUncertaintyCount) ||
+    (input.reflectionHistory.recentReflections || []).some(
+      (entry) => entry.needsHumanReview === true,
+    );
+  const reflectionNeedsClarification =
+    reflectionMissingFacts.length > 0 ||
+    (input.reflectionHistory.recentReflections || []).some(
+      (entry) => entry.needsClarification === true,
+    );
 
   if (targetBoundary && allowedBoundaries.size > 0 && !allowedBoundaries.has(targetBoundary)) {
     addFinding(
@@ -163,12 +176,10 @@ export function evaluateContextualInputLocal(
 
   if (
     input.action.disclosure &&
-    !prerequisiteSeekingReply &&
     ((typeof disclosureBudgetMax === "number" &&
       typeof estimatedRecords === "number" &&
       estimatedRecords > disclosureBudgetMax) ||
-      maxDisclosedClassification >= 2 ||
-      contentHasConcreteSensitiveDisclosure(contentExcerpt))
+      maxDisclosedClassification >= 2)
   ) {
     addFinding(
       "disproportionate_disclosure",
@@ -192,6 +203,36 @@ export function evaluateContextualInputLocal(
     );
   }
 
+  if (reflectionMissingFacts.length > 0) {
+    addFinding(
+      "unmet_preconditions",
+      Math.min(0.2, 0.08 + reflectionMissingFacts.length * 0.03),
+      "reflection_missing_facts",
+      `Structured reflection still reports unresolved missing facts: ${reflectionMissingFacts.join(", ")}.`,
+      "reflectionHistory.persistentMissingFacts",
+    );
+  }
+
+  if (input.derivedFacts.repeatedReflectionDeviationCount > 0) {
+    addFinding(
+      "insufficient_justification",
+      Math.min(0.18, 0.08 + input.derivedFacts.repeatedReflectionDeviationCount * 0.03),
+      "reflection_deviation",
+      "Structured reflection indicates repeated deviations in related execution attempts.",
+      "reflectionHistory.repeatedDeviationCount",
+    );
+  }
+
+  if (reflectionNeedsHumanReview) {
+    addFinding(
+      "insufficient_justification",
+      Math.min(0.18, 0.08 + input.derivedFacts.repeatedReflectionUncertaintyCount * 0.03),
+      "reflection_uncertainty",
+      "Structured reflection reports lingering uncertainty or a need for human review before execution.",
+      "reflectionHistory.repeatedUncertaintyCount",
+    );
+  }
+
   const detectorFindings = applyDetectorFindingSignals({
     input,
     contentExcerpt,
@@ -207,9 +248,18 @@ export function evaluateContextualInputLocal(
     : 0.45;
 
   let decision: EvaluatorOutput["decision"] = "allow";
+  const needsClarification =
+    (missingFacts.length > 0 ||
+      clarificationQuestions.length > 0 ||
+      input.derivedFacts.unresolvedClarificationCount > 0 ||
+      reflectionNeedsClarification) &&
+    !principles.has("authority_scope_mismatch") &&
+    !principles.has("source_use_misalignment");
   if (score >= denyThreshold || (principles.has("authority_scope_mismatch") && principles.has("unmet_preconditions"))) {
     decision = "deny";
-  } else if (score >= escalateThreshold) {
+  } else if (needsClarification) {
+    decision = "clarify";
+  } else if (score >= escalateThreshold || reflectionNeedsHumanReview) {
     decision = "escalate";
   }
 
@@ -229,6 +279,12 @@ export function evaluateContextualInputLocal(
     sourceClassifications: normalizeStringArray(sourceClassifications),
     missingScopes: scopesMissing,
     unresolvedPrerequisites,
+    reflection: {
+      enabled: input.derivedFacts.reflectionEnabled,
+      repeatedDeviationCount: input.derivedFacts.repeatedReflectionDeviationCount,
+      repeatedUncertaintyCount: input.derivedFacts.repeatedReflectionUncertaintyCount,
+      persistentMissingFacts: reflectionMissingFacts,
+    },
     detectorFindings: detectorFindings.map((entry) => ({
       code: entry.code,
       subjectType: entry.subjectType,
@@ -243,17 +299,34 @@ export function evaluateContextualInputLocal(
     orderedPrinciples.length === 0
       ? "No contextual concern detected."
       : `Contextual evaluator flagged ${orderedPrinciples.join(", ")}.`;
+  const evidenceRefs = Array.from(
+    new Set([
+      ...evidence.map((entry) => normalizeString(entry.path)).filter(Boolean),
+      ...input.auditEvidence.map((entry) => normalizeString(entry.ref)).filter(Boolean),
+    ]),
+  );
+  const missingQuestions = clarificationQuestions.length > 0
+    ? clarificationQuestions
+    : missingFacts.slice(0, 4).map((fact) => `What information is needed to resolve: ${fact}?`);
 
   return EvaluatorOutputSchema.parse({
     decision,
+    basis: "semantic_reasoner",
     confidence,
     principles: orderedPrinciples,
     summary,
     reasoning,
     evidence,
+    evidenceRefs,
     suggestedSeverity: severityFromScore(score),
     suggestedRemediation: remediation,
     normalizedFingerprint: fingerprint,
+    missingFacts,
+    questions: missingQuestions,
+    suggestedSources: normalizeStringArray(input.derivedFacts.suggestedSources),
+    resumeConditions: normalizeStringArray(input.derivedFacts.resumeConditions),
+    reasonerVersion: "local-semantic-reasoner-v1",
+    calibrationVersion: "local-calibration-v0",
   });
 }
 
