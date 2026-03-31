@@ -7,8 +7,6 @@ function readProtocolSpecVersion(): string {
   const specPath = path.resolve(
     __dirname,
     "..",
-    "..",
-    "sec0-runtime-protocol",
     "openapi",
     "runtime-enforcement.yaml",
   );
