@@ -2,10 +2,10 @@
   <img src="https://raw.githubusercontent.com/teluashish0/coreax/main/public/sec0_logo.png" alt="CoreAX logo" width="70">
 </p>
 
-<h1 align="center">CoreAX SDK</h1>
+<h1 align="center">CoreAX</h1>
 
 <h3 align="center"><strong>The safest way to monitor, enforce context-aware guardrails, and improve your AI agents as conditions change</strong></h3>
-<p align="center"><em>CoreAX, formerly Sec0, is an open-source Runtime Assurance SDK for AI agents in production</em></p>
+<p align="center"><em>CoreAX is an open-source Runtime Assurance SDK for AI agents in production</em></p>
 <p align="center"><em>Built to interoperate with any stack.</em></p>
 
 <p align="center">
